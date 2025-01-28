@@ -8,9 +8,13 @@
 
 - Creating new data with a POST request
 
+- Updating data with a PATCH request
+
+- Deleting data with a DELETE request
+
 ## Getting Started
 
-Being with:
+Begin with:
 
 ```
 pipenv install
