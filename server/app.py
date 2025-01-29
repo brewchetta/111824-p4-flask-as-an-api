@@ -4,42 +4,32 @@ from flask import request, make_response, jsonify
 from config import app, db
 from models import Puppy
 
+# HELPERS ######################
+
+def find_puppy_by_id(id):
+    return Puppy.query.where(Puppy.id == id).first()
+
 # ROUTES #######################
 
-@app.get('/')
-def main_route():
-    print("--------------------HELLO------------------")
-    return make_response( "<h1>BIG SERVER ERROR 500</h1>", 500 )
-    # for whatever reason we're choosing to send back an error and a 500 status code
-
-
-@app.post('/') # this will only fire for a post request
-def main_post():
-    return make_response( "<h1>THIS IS A POST REQUEST</h1>", 200 )
-
-# @app.get('/puppies')
-# def puppies():
-#     return make_response( jsonify({ "name": 'Wilfred', "age": 6 }), 200 )
-    # jsonify allows us to transform the dict into json format
-
-# GET ALL
+# GET ALL PUPPIES
 @app.get('/puppies')
 def all_puppies():
     all_puppies = Puppy.query.all()
-    puppy_dictionaries = [ puppy.to_dict() for puppy in all_puppies ] # list comprehension
+    puppy_dictionaries = [ puppy.to_dict( rules=("-id") ) for puppy in all_puppies ] # list comprehension
     return make_response( jsonify(puppy_dictionaries), 200 )
 
 
-# GET ONE
+# GET ONE PUPPY
 @app.get('/puppies/<int:id>')
-def get_first_puppy(id):
-    first_puppy = Puppy.query.where(Puppy.id == id).first()
-    if first_puppy:
-        return make_response( jsonify( first_puppy.to_dict() ), 200 )
+def get_puppy(id):
+    found_puppy = find_puppy_by_id(id)
+    if found_puppy:
+        return make_response( jsonify( found_puppy.to_dict( rules=("is_good_dog",) ) ), 200 )
     else:
         return make_response( jsonify( { "error": "Not found" } ), 404 )
 
-# CREATE
+
+# CREATE PUPPY
 @app.post('/puppies')
 def post_brand_new_puppy():
     try:
@@ -55,16 +45,36 @@ def post_brand_new_puppy():
     except Exception:
         return make_response( jsonify( { "error": "Something went wrong..." } ), 400 )
 
-# fetch('/puppies', {
-#     "method": 'POST',
-#     "headers": {},
-#     "body": JSON.stringify( {name: "Jim", breed: "Poodle"} )
-# })
 
+# UPDATE PUPPY
+@app.patch('/puppies/<int:id>')
+def patch_puppy(id):
+    found_puppy = find_puppy_by_id(id)
+    if found_puppy:
+        try:
+            body = request.json
+            for key in body:
+                setattr( found_puppy, key, body[key] )
+            db.session.add(found_puppy)
+            db.session.commit()
+            return found_puppy.to_dict(), 202
+        except Exception:
+            return { "error": "Something went wrong..." }, 400
+    else:
+        return { "error": "Not found" }, 404
+    
 
-# UPDATE
+# DELETE PUPPY
+@app.delete('/puppies/<int:id>')
+def delete_puppy(id):
+    found_puppy = find_puppy_by_id(id)
+    if found_puppy:
+        db.session.delete(found_puppy)
+        db.session.commit()
+        return {}, 204
+    else:
+        return { "error": "Not found" }, 404
 
-# DELETE
 
 # RUN ##########################
 
