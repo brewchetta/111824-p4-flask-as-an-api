@@ -2,7 +2,7 @@
 
 from flask import request, make_response, jsonify
 from config import app, db
-from models import Puppy
+from models import Puppy, Toy
 
 # HELPERS ######################
 
@@ -15,8 +15,8 @@ def find_puppy_by_id(id):
 @app.get('/puppies')
 def all_puppies():
     all_puppies = Puppy.query.all()
-    puppy_dictionaries = [ puppy.to_dict( rules=("-id") ) for puppy in all_puppies ] # list comprehension
-    return make_response( jsonify(puppy_dictionaries), 200 )
+    puppy_dictionaries = [ puppy.to_dict() for puppy in all_puppies ] # list comprehension
+    return puppy_dictionaries, 200
 
 
 # GET ONE PUPPY
@@ -24,9 +24,9 @@ def all_puppies():
 def get_puppy(id):
     found_puppy = find_puppy_by_id(id)
     if found_puppy:
-        return make_response( jsonify( found_puppy.to_dict( rules=("is_good_dog",) ) ), 200 )
+        return found_puppy.to_dict(), 200 
     else:
-        return make_response( jsonify( { "error": "Not found" } ), 404 )
+        return { "error": "Not found" }, 404 
 
 
 # CREATE PUPPY
@@ -43,7 +43,7 @@ def post_brand_new_puppy():
         return new_pup.to_dict(), 201
     
     except Exception:
-        return make_response( jsonify( { "error": "Something went wrong..." } ), 400 )
+        return { "error": "Something went wrong..." }, 400
 
 
 # UPDATE PUPPY
@@ -74,6 +74,30 @@ def delete_puppy(id):
         return {}, 204
     else:
         return { "error": "Not found" }, 404
+    
+
+# GET ALL TOYS
+@app.get('/toys')
+def get_toys():
+    all_toys = Toy.query.all()
+    toy_dicts = [ toy.to_dict() for toy in all_toys ]
+    return toy_dicts, 200
+
+
+@app.post('/toys')
+def post_toy():
+    try:
+        body = request.json
+        new_toy = Toy( 
+            name=body.get('name'), 
+            puppy_id=body.get('puppy_id') 
+        )
+        db.session.add(new_toy)
+        db.session.commit()
+        return new_toy.to_dict(), 201
+    except Exception as e:
+        return { 'error': str( e ) }, 400
+
 
 
 # RUN ##########################

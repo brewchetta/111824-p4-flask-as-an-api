@@ -1,7 +1,6 @@
 from config import db
 from sqlalchemy_serializer import SerializerMixin
 # from sqlalchemy.ext.associationproxy import association_proxy
-# from sqlalchemy.orm import validates
 
 
 # MODELS ################
@@ -14,16 +13,19 @@ class Puppy(db.Model, SerializerMixin):
     name = db.Column(db.String, nullable=False)
     breed = db.Column(db.String)
 
-    def is_good_dog(self):
-        return "YES"
+    toys = db.relationship('Toy', back_populates='puppy')
 
-    # changes the to_dict for each request
-    serialize_rules = ("is_good_dog", "-breed")
+    serialize_rules = ('-toys.puppy',)
 
-    # SerializerMixin writes the to_dict for us
-    # def to_dict(self):
-    #     return {
-    #         "id": self.id,
-    #         "name": self.name,
-    #         "breed": self.breed
-    #     }
+class Toy(db.Model, SerializerMixin):
+
+    __tablename__ = 'toys_table'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+
+    puppy_id = db.Column(db.Integer, db.ForeignKey('puppies_table.id'))
+
+    puppy = db.relationship('Puppy', back_populates='toys')
+
+    serialize_rules = ('-puppy.toys', '-puppy.breed')
